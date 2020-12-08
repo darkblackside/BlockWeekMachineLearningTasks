@@ -1,9 +1,10 @@
+#Task: Weather data - two variables (gaussian generative model)
+
 library(readr)
 library(dplyr)
 library(tidyverse)
 library(caret)
 library(matlib)
-
 
 multivariateGaussian <- function(mean, sigma, x) {
   invSigma <- inv(sigma)
@@ -19,7 +20,7 @@ print(class(data))
 reducedData <- data %>% select(air_pressure_9am, air_temp_9am, `Binary Class`)
 
 classA <- reducedData %>% filter(`Binary Class` == "A")
-classB <- reducedData %>% filter(`Binary Class` == "A")
+classB <- reducedData %>% filter(`Binary Class` == "B")
 
 summary(classA)
 summary(classB)
@@ -33,4 +34,15 @@ inverseClassB <- inv(covClassB)
 detClassA <- det(covClassA)
 detClassB <- det(covClassB)
 
-multivariateGaussian()
+meanClassA <- c(mean(classA$air_pressure_9am), mean(classA$air_temp_9am))
+meanClassB <- c(mean(classB$air_pressure_9am), mean(classB$air_temp_9am))
+
+reducedData$predictionClassA <- reducedData %>% select(air_pressure_9am, air_temp_9am) %>% apply(1, multivariateGaussian, mean=meanClassA, sigma=covClassA)
+reducedData$predictionClassB <- reducedData %>% select(air_pressure_9am, air_temp_9am) %>% apply(1, multivariateGaussian, mean=meanClassB, sigma=covClassB)
+
+reducedData <- reducedData %>% mutate(prediction = ifelse(predictionClassA > predictionClassB, 'A', 'B'))
+
+countCorrect <- nrow(reducedData %>% filter(`Binary Class` == prediction))
+trainingError <- 1-countCorrect/nrow(reducedData)
+
+trainingError
